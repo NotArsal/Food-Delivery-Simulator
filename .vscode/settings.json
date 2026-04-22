@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": ["./ml", "./backend"],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none"
+    }
+}
