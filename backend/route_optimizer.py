@@ -6,6 +6,17 @@ import math
 from routing import find_route, haversine
 from road_network import get_nearest_node, get_node_coords
 
+# Add after existing imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from routing.algorithm_router import select_algorithm, AlgorithmType
+    ROUTER_AVAILABLE = True
+except ImportError:
+    ROUTER_AVAILABLE = False
+    AlgorithmType = None
+
 
 def _build_distance_matrix(G, stop_nodes, routing_mode="dynamic", manual_algorithm="dijkstra", traffic_level=1.0, is_urgent=False):
     """Build a distance matrix between all stops using shortest paths."""
