@@ -2,16 +2,20 @@
 Route Optimization
 Greedy TSP approximation for multi-stop delivery routes.
 """
-import math
-from routing import find_route, haversine
-from road_network import get_nearest_node, get_node_coords
-
-# Add after existing imports
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import math
+from routing import find_route as _find_route, haversine as _haversine
+find_route = _find_route
+haversine = _haversine
+from road_network import get_nearest_node, get_node_coords
+
+import sys
+import os
 try:
-    from routing.algorithm_router import select_algorithm, AlgorithmType
+    from routing_algorithms.algorithm_router import select_algorithm, AlgorithmType
     ROUTER_AVAILABLE = True
 except ImportError:
     ROUTER_AVAILABLE = False
