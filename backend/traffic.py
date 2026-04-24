@@ -4,6 +4,13 @@ Dynamically assigns traffic levels to road edges.
 """
 import random
 
+try:
+    from pune_data import get_traffic_level as get_pune_traffic, PUNE_ZONES
+    PUNE_TRAFFIC = True
+except ImportError:
+    PUNE_TRAFFIC = False
+
+
 
 # Traffic multipliers
 TRAFFIC_LEVELS = {
