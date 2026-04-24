@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import asyncio
+import time
 from typing import Set
 from contextlib import asynccontextmanager
 
@@ -287,20 +288,39 @@ async def compute_route(
 
 @app.get("/api/algorithms/compare")
 async def compare_algorithms(from_lat: float, from_lng: float, to_lat: float, to_lng: float):
-    """Compare all routing algorithms on the same route."""
+    """Compare all routing algorithms with detailed metrics."""
     G = simulation.graph or load_graph()
     source = get_nearest_node(G, from_lat, from_lng)
     target = get_nearest_node(G, to_lat, to_lng)
 
     results = {}
-    for algo in ["dijkstra", "astar", "bfs", "dfs", "greedy", "bellman_ford"]:
-        results[algo] = find_route(G, source, target, algorithm=algo)
+    algorithms = ["dijkstra", "astar", "bfs", "dfs", "greedy", "bellman_ford"]
+
+    for algo in algorithms:
+        start = time.time()
+        result = find_route(G, source, target, algorithm=algo)
+        elapsed = (time.time() - start) * 1000  # ms
+
+        results[algo] = {
+            "distance_m": result.get("total_distance_m", 0),
+            "time_ms": round(elapsed, 2),
+            "path_length": len(result.get("path", [])),
+            "algorithm": algo
+        }
 
     # Floyd-Warshall on small subgraph
     import random
     nodes = list(G.nodes())
-    subset = random.sample(nodes, min(200, len(nodes)))
-    results["floyd_warshall"] = floyd_warshall_subgraph(G, subset)
+    subset = random.sample(nodes, min(100, len(nodes)))
+    start = time.time()
+    fw_result = floyd_warshall_subgraph(G, subset)
+    elapsed = (time.time() - start) * 1000
+
+    results["floyd_warshall"] = {
+        "distance_m": fw_result.get("shortest_distances", {}).get((source, target), 0),
+        "time_ms": round(elapsed, 2),
+        "algorithm": "floyd_warshall"
+    }
 
     return results
 
