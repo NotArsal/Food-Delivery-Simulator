@@ -17,6 +17,12 @@ except ImportError:
 from sklearn.cluster import KMeans
 from road_network import PUNE_BOUNDS, get_nearest_node, DATA_DIR
 
+try:
+    from pune_data import get_all_restaurants, get_zone_center
+    PUNE_DATA_AVAILABLE = True
+except ImportError:
+    PUNE_DATA_AVAILABLE = False
+
 RESTAURANTS_FILE = os.path.join(DATA_DIR, "restaurants.csv")
 # Hotspot zone names loosely based on Pune areas
 ZONE_NAMES = ["Hinjewadi", "Baner", "Kothrud", "Viman Nagar", "Wakad", "Kharadi"]
@@ -27,6 +33,18 @@ def _load_or_download_restaurants(city_name="Pune, India"):
     clean_name = city_name.replace(", ", "_").replace(" ", "_").lower()
     rest_file = os.path.join(DATA_DIR, f"{clean_name}_restaurants.csv")
 
+    # Try pune_data first for structured restaurant data
+    if PUNE_DATA_AVAILABLE and "pune" in city_name.lower():
+        pune_restaurants = get_all_restaurants()
+        if pune_restaurants:
+            # Convert to expected format
+            for r in pune_restaurants:
+                r["restaurant_id"] = f"pune_rest_{r.get('name', '')[:10]}"
+                r["lat"] = r.pop("center_lat", get_zone_center(r.get("zone", "Kothrud"))[0])
+                r["lng"] = r.pop("center_lng", get_zone_center(r.get("zone", "Kothrud"))[1])
+                r["zone_name"] = r.get("zone", "Unknown")
+            return pune_restaurants
+    
     if os.path.exists(rest_file):
         return pd.read_csv(rest_file).to_dict('records')
 
