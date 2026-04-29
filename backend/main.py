@@ -57,11 +57,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# CORS - note: allow_credentials=True is incompatible with allow_origins=["*"] per CORS spec
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -272,14 +271,22 @@ async def compute_route(
     G = simulation.graph or load_graph()
     source = get_nearest_node(G, from_lat, from_lng)
     target = get_nearest_node(G, to_lat, to_lng)
-    
-    # Get traffic level
+
+    # get_traffic_summary returns a dict with keys: low, medium, high, total_edges, etc.
     traffic_data = get_traffic_summary(G)
-    avg_traffic = sum(d["avg_multiplier"] for d in traffic_data) / len(traffic_data) if traffic_data else 1.0
+    total_edges = traffic_data.get("total_edges", 0)
+    if total_edges > 0:
+        avg_traffic = (
+            traffic_data.get("low", 0) * 1.0
+            + traffic_data.get("medium", 0) * 1.3
+            + traffic_data.get("high", 0) * 1.8
+        ) / total_edges
+    else:
+        avg_traffic = 1.0
 
     result = find_route(
-        G, source, target, 
-        algorithm=algorithm, 
+        G, source, target,
+        algorithm=algorithm,
         dynamic_mode=(routing_mode == "dynamic"),
         traffic_level=avg_traffic
     )

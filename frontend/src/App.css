@@ -250,6 +250,7 @@ body {
 .map-container {
   flex: 1;
   position: relative;
+  height: 100%;
 }
 
 .leaflet-container {
@@ -322,6 +323,7 @@ body {
   border-left: 1px solid var(--border-color);
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 20px;

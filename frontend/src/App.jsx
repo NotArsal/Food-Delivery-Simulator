@@ -172,6 +172,7 @@ function App() {
         onStart={startSimulation}
         onStop={stopSimulation}
         onReset={resetSimulation}
+        onCompare={fetchDebugRoute}
       >
         <AlgorithmChart comparisonData={debugRouteData} isLoading={debugLoading} />
       </Dashboard>

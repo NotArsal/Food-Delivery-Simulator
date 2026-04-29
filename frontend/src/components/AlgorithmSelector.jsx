@@ -1,46 +1,51 @@
-import './AlgorithmSelector.css';
-
 const algorithms = [
-  { id: 'dijkstra', name: 'Dijkstra', icon: '⬡', color: '#00d4aa', desc: 'Optimal for all scenarios' },
-  { id: 'astar', name: 'A*', icon: '★', color: '#f59e0b', desc: 'Heuristic best-first' },
-  { id: 'bfs', name: 'BFS', icon: '◎', color: '#3b82f6', desc: 'Shortest hops' },
-  { id: 'dfs', name: 'DFS', icon: '◇', color: '#8b5cf6', desc: 'Deep exploration' },
-  { id: 'greedy', name: 'Greedy', icon: '◆', color: '#ec4899', desc: 'Fast local optimum' },
-  { id: 'floyd_warshall', name: 'Floyd', icon: '⬢', color: '#14b8a6', desc: 'All-pairs shortest' },
-  { id: 'genetic', name: 'Genetic', icon: '🧬', color: '#f97316', desc: 'Evolutionary optimization' },
+  { id: 'dijkstra', name: 'Dijkstra', icon: '⬡', color: '#32d74b', desc: 'Optimal & Stable' },
+  { id: 'astar', name: 'A*', icon: '★', color: '#ffd60a', desc: 'Heuristic Guided' },
+  { id: 'bfs', name: 'BFS', icon: '◎', color: '#0a84ff', desc: 'Shortest Hop' },
+  { id: 'dfs', name: 'DFS', icon: '◇', color: '#bf5af2', desc: 'Deep Search' },
+  { id: 'greedy', name: 'Greedy', icon: '◆', color: '#ff453a', desc: 'Fastest Compute' },
+  { id: 'floyd_warshall', name: 'Floyd', icon: '⬢', color: '#007aff', desc: 'All-Pairs' },
 ];
 
 function AlgorithmSelector({ config, onUpdateConfig }) {
   const isManual = config.routing_mode === 'manual';
 
   return (
-    <div className="algorithm-selector">
-      <h3>Algorithm</h3>
+    <div className="glass-panel">
       {isManual ? (
-        <div className="algorithm-grid">
+        <div className="metric-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           {algorithms.map(algo => (
             <button
               key={algo.id}
-              className={`algo-card ${config.manual_algorithm === algo.id ? 'active' : ''}`}
-              style={{ '--algo-color': algo.color }}
+              className={`metric-card ${config.manual_algorithm === algo.id ? 'active' : ''}`}
+              style={{ 
+                cursor: 'pointer',
+                textAlign: 'left',
+                border: config.manual_algorithm === algo.id ? `1px solid ${algo.color}` : '1px solid var(--border-color)',
+                boxShadow: config.manual_algorithm === algo.id ? `0 0 10px ${algo.color}44` : 'none',
+                background: config.manual_algorithm === algo.id ? `${algo.color}11` : 'var(--bg-glass)'
+              }}
               onClick={() => onUpdateConfig('manual', algo.id)}
-              disabled={!isManual}
             >
-              <span className="algo-icon">{algo.icon}</span>
-              <span className="algo-name">{algo.name}</span>
-              <span className="algo-desc">{algo.desc}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ color: algo.color, fontSize: '16px' }}>{algo.icon}</span>
+                <span className="metric-label" style={{ margin: 0, fontSize: '10px' }}>{algo.name}</span>
+              </div>
+              <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 500 }}>{algo.desc}</div>
             </button>
           ))}
         </div>
       ) : (
-        <div className="auto-mode-info">
-          <span className="auto-icon">🤖</span>
-          <p>Dynamic mode active</p>
-          <p className="sub">System selects optimal algorithm based on traffic, order density, and urgency</p>
+        <div className="metric-card wide" style={{ textAlign: 'center', padding: '20px 10px' }}>
+          <div className="logo-icon" style={{ fontSize: '32px', marginBottom: '12px' }}>🤖</div>
+          <div className="metric-label" style={{ color: 'var(--accent-primary)' }}>Dynamic Intelligence Active</div>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4 }}>
+            System is autonomously selecting optimal routing strategies based on real-time traffic and delivery urgency.
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-export default AlgorithmSelector;
+export default AlgorithmSelector;

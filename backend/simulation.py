@@ -279,7 +279,7 @@ class SimulationEngine:
         self.start_time = time.time()
         print("[SIM] Simulation started!")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         while self.is_running:
             try:

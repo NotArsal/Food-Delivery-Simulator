@@ -88,10 +88,12 @@ def get_all_restaurants():
     all_restaurants = []
     for zone_name, zone_data in PUNE_ZONES.items():
         for restaurant in zone_data["restaurants"]:
-            restaurant["zone"] = zone_name
-            restaurant["center_lat"] = zone_data["center"][0]
-            restaurant["center_lng"] = zone_data["center"][1]
-            all_restaurants.append(restaurant)
+            # Copy to avoid mutating the shared PUNE_ZONES constant
+            r = dict(restaurant)
+            r["zone"] = zone_name
+            r["center_lat"] = zone_data["center"][0]
+            r["center_lng"] = zone_data["center"][1]
+            all_restaurants.append(r)
     return all_restaurants
 
 def get_traffic_level(zone_name, hour=12):

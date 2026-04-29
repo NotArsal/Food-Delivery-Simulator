@@ -137,10 +137,18 @@
 .map-section {
   flex: 1;
   position: relative;
+  height: 100%;
+}
+
+.map-container {
+  height: 100%;
+  width: 100%;
 }
 
 .sidebar {
   width: 320px;
+  min-width: 320px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -148,4 +156,90 @@
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
   overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
 }
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+.btn-compare {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #6366f1, #00d4aa);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.btn-compare:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-compare:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .controls-section {
+    width: 100%;
+    justify-content: space-between;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .dashboard-main {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .map-section {
+    height: 50vh;
+    min-height: 400px;
+    flex: none;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+    overflow-y: visible;
+    flex: none;
+  }
+
+  .mode-toggle button {
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-section h1 {
+    font-size: 16px;
+  }
+  
+  .controls-section {
+    gap: 8px;
+  }
+  
+  .mode-toggle button {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+

@@ -1,0 +1,57 @@
+.metrics-panel {
+  background: var(--bg-tertiary, #1a1a25);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--text-primary, #f0f0f5);
+}
+
+.metrics-panel h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--text-secondary, #8888a0);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.metric-card {
+  background: var(--bg-secondary, #12121a);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.metric-card.highlight {
+  grid-column: span 2;
+  background: linear-gradient(135deg, #00d4aa, #6366f1);
+}
+
+.metric-card.highlight .metric-value,
+.metric-card.highlight .metric-label {
+  color: #000;
+}
+
+.metric-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.metric-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary, #8888a0);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.tick-info {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary, #8888a0);
+}

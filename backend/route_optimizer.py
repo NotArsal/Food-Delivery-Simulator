@@ -12,8 +12,6 @@ find_route = _find_route
 haversine = _haversine
 from road_network import get_nearest_node, get_node_coords
 
-import sys
-import os
 try:
     from routing_algorithms.algorithm_router import select_algorithm, AlgorithmType
     ROUTER_AVAILABLE = True

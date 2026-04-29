@@ -73,16 +73,17 @@ def custom_astar_dijkstra(G, source, target, is_astar=False):
     
     g_score = {source: 0}
     came_from = {}
-    explored_nodes = []
+    explored_set = set()
+    explored_list = []  # ordered list for result
     
     while queue:
         _, _, current, current_g = heapq.heappop(queue)
         
-        # We process the node when we pop it (this means it's fully explored)
-        if current in explored_nodes and current != source:
+        if current in explored_set:
             continue
             
-        explored_nodes.append(current)
+        explored_set.add(current)
+        explored_list.append(current)
         
         if current == target:
             # Reconstruct path
@@ -91,7 +92,7 @@ def custom_astar_dijkstra(G, source, target, is_astar=False):
                 current = came_from[current]
                 path.append(current)
             path.reverse()
-            return path, explored_nodes
+            return path, explored_list
             
         # Instead of iterating over all neighbors slowly, use G.adj
         if isinstance(G, nx.MultiDiGraph) or hasattr(G, 'adj'):
@@ -177,19 +178,21 @@ def bfs(G, source, target):
             
         queue = deque([source])
         came_from = {source: None}
-        explored = []
+        explored_set = set([source])
+        explored_list = []
         path_found = False
         
         while queue:
             current = queue.popleft()
-            explored.append(current)
+            explored_list.append(current)
             if current == target:
                 path_found = True
                 break
                 
             neighbors = G.adj.get(current, {}) if hasattr(G, 'adj') else G[current]
             for neighbor in neighbors:
-                if neighbor not in came_from:
+                if neighbor not in explored_set:
+                    explored_set.add(neighbor)
                     came_from[neighbor] = current
                     queue.append(neighbor)
                     
@@ -206,7 +209,7 @@ def bfs(G, source, target):
         calc_time = time.perf_counter() - start_time
         distance, travel_time = _path_stats(G, path)
         coords = _path_to_coords(G, path)
-        explored_coords = _path_to_coords(G, explored)
+        explored_coords = _path_to_coords(G, explored_list)
         return {
             "algorithm": "bfs",
             "path_nodes": path,
@@ -215,7 +218,7 @@ def bfs(G, source, target):
             "total_distance_m": round(distance, 2),
             "estimated_time_s": round(travel_time, 2),
             "num_nodes": len(path),
-            "nodes_explored": len(explored),
+            "nodes_explored": len(explored_list),
             "calc_time_ms": round(calc_time * 1000, 2)
         }
     except Exception as e:
@@ -231,14 +234,17 @@ def dfs(G, source, target):
             
         stack = [source]
         came_from = {source: None}
-        explored = []
+        explored_set = set()
+        explored_list = []
+        in_stack = {source}  # O(1) stack membership check
         path_found = False
         
         while stack:
             current = stack.pop()
-            if current in explored:
+            if current in explored_set:
                 continue
-            explored.append(current)
+            explored_set.add(current)
+            explored_list.append(current)
             
             if current == target:
                 path_found = True
@@ -246,9 +252,10 @@ def dfs(G, source, target):
                 
             neighbors = G.adj.get(current, {}) if hasattr(G, 'adj') else G[current]
             for neighbor in neighbors:
-                if neighbor not in explored and neighbor not in stack:
+                if neighbor not in explored_set and neighbor not in in_stack:
                     came_from[neighbor] = current
                     stack.append(neighbor)
+                    in_stack.add(neighbor)
                     
         if not path_found:
             raise nx.NetworkXNoPath(f"No path between {source} and {target}.")
@@ -263,7 +270,7 @@ def dfs(G, source, target):
         calc_time = time.perf_counter() - start_time
         distance, travel_time = _path_stats(G, path)
         coords = _path_to_coords(G, path)
-        explored_coords = _path_to_coords(G, explored)
+        explored_coords = _path_to_coords(G, explored_list)
         return {
             "algorithm": "dfs",
             "path_nodes": path,
@@ -272,7 +279,7 @@ def dfs(G, source, target):
             "total_distance_m": round(distance, 2),
             "estimated_time_s": round(travel_time, 2),
             "num_nodes": len(path),
-            "nodes_explored": len(explored),
+            "nodes_explored": len(explored_list),
             "calc_time_ms": round(calc_time * 1000, 2)
         }
     except Exception as e:

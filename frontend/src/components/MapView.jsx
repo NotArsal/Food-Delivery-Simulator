@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.heat'
 
 // Fix Leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl
@@ -46,13 +47,52 @@ function createDriverIcon(status) {
   })
 }
 
-// Animated map view controller
-function MapUpdater({ drivers }) {
-  return null // Map stays centered on Pune
+// Heatmap layer component
+function HeatmapLayer({ points, visible }) {
+  const map = useMap()
+  const heatLayerRef = useRef(null)
+
+  useEffect(() => {
+    if (visible && points.length > 0) {
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current)
+      }
+      heatLayerRef.current = L.heatLayer(points, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17,
+        gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1: 'red' }
+      }).addTo(map)
+    } else if (heatLayerRef.current) {
+      map.removeLayer(heatLayerRef.current)
+      heatLayerRef.current = null
+    }
+
+    return () => {
+      if (heatLayerRef.current) {
+        map.removeLayer(heatLayerRef.current)
+      }
+    }
+  }, [map, points, visible])
+
+  return null
 }
 
-function MapView({ drivers, orders, isRunning, debugRouteData, city }) {
+// Animated map view controller
+function MapUpdater({ city }) {
+  const map = useMap()
+  useEffect(() => {
+    const coords = CITY_COORDS[city]
+    if (coords) {
+      map.setView(coords, 12, { animate: true })
+    }
+  }, [city, map])
+  return null
+}
+
+function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city }) {
   const mapCenter = CITY_COORDS[city] || CITY_COORDS["Pune, India"]
+  
   // Create driver icons memo
   const driverIcons = useMemo(() => {
     const icons = {}
@@ -73,6 +113,18 @@ function MapView({ drivers, orders, isRunning, debugRouteData, city }) {
       }))
   }, [drivers])
 
+  // Heatmap data: all restaurant and customer locations
+  const heatmapPoints = useMemo(() => {
+    const points = []
+    orders.forEach(o => {
+      if (o.status !== 'delivered') {
+        points.push([o.restaurant_lat, o.restaurant_lng, 0.5])
+        points.push([o.customer_lat, o.customer_lng, 0.3])
+      }
+    })
+    return points
+  }, [orders])
+
   return (
     <div className="map-container">
       <MapContainer
@@ -87,7 +139,8 @@ function MapView({ drivers, orders, isRunning, debugRouteData, city }) {
           url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
 
-        <MapUpdater drivers={drivers} />
+        <MapUpdater city={city} />
+        <HeatmapLayer points={heatmapPoints} visible={showHeatmap} />
 
         {/* Delivery routes */}
         {routes.map(route => (
@@ -186,28 +239,31 @@ function MapView({ drivers, orders, isRunning, debugRouteData, city }) {
       </MapContainer>
 
       {/* Map overlay legend */}
-      <div className="map-legend">
-        <div className="map-legend-title">Markers</div>
-        <div className="map-legend-items">
-          <div className="map-legend-item">
-            <span style={{ color: '#f97316', fontSize: 16 }}>●</span> Restaurant
-          </div>
-          <div className="map-legend-item">
-            <span style={{ color: '#a78bfa', fontSize: 16 }}>●</span> Customer
-          </div>
-          <div className="map-legend-item">
-            <span style={{ color: '#22c55e', fontSize: 16 }}>●</span> Idle
-          </div>
-          <div className="map-legend-item">
-            <span style={{ color: '#eab308', fontSize: 16 }}>●</span> Picking
-          </div>
-          <div className="map-legend-item">
-            <span style={{ color: '#ef4444', fontSize: 16 }}>●</span> Delivering
+      {!showHeatmap && (
+        <div className="map-legend">
+          <div className="map-legend-title">Markers</div>
+          <div className="map-legend-items">
+            <div className="map-legend-item">
+              <span style={{ color: '#ef4444', fontSize: 16 }}>●</span> Restaurant
+            </div>
+            <div className="map-legend-item">
+              <span style={{ color: '#3b82f6', fontSize: 16 }}>●</span> Customer
+            </div>
+            <div className="map-legend-item">
+              <span style={{ color: '#22c55e', fontSize: 16 }}>●</span> Idle
+            </div>
+            <div className="map-legend-item">
+              <span style={{ color: '#eab308', fontSize: 16 }}>●</span> Picking
+            </div>
+            <div className="map-legend-item">
+              <span style={{ color: '#ef4444', fontSize: 16 }}>●</span> Delivering
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
 
 export default MapView
+
