@@ -20,30 +20,46 @@ const CITY_COORDS = {
   "Bangalore, India": [12.9716, 77.5946]
 }
 
-// Status colors
+// Premium Status Colors (Aligned with App.css)
 const STATUS_COLORS = {
-  idle: '#22c55e',
-  picking: '#eab308',
-  delivering: '#ef4444',
-  returning: '#3b82f6',
+  idle: '#32d74b',      // Bright Green
+  picking: '#ff9f0a',   // Bright Orange/Yellow
+  delivering: '#ff2d55', // Vivid Pink-Red (Glowing)
+  returning: '#0a84ff',  // Electric Blue
+  restaurant: '#ff3b30', // System Red
+  customer: '#5856d6',   // Indigo
 }
 
 // Custom driver icon creator
 function createDriverIcon(status) {
   const color = STATUS_COLORS[status] || '#94a3b8'
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="14" fill="${color}" stroke="white" stroke-width="2.5" opacity="0.95"/>
-      <circle cx="16" cy="16" r="5" fill="white" opacity="0.9"/>
-      ${status !== 'idle' ? '<circle cx="16" cy="16" r="18" fill="none" stroke="' + color + '" stroke-width="1.5" opacity="0.3"><animate attributeName="r" from="14" to="22" dur="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" from="0.4" to="0" dur="1.5s" repeatCount="indefinite"/></circle>' : ''}
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <circle cx="18" cy="18" r="12" fill="${color}" stroke="white" stroke-width="2.5" filter="url(#glow)"/>
+      <circle cx="18" cy="18" r="4" fill="white"/>
+      ${status !== 'idle' ? `
+        <circle cx="18" cy="18" r="15" fill="none" stroke="${color}" stroke-width="2" opacity="0.5">
+          <animate attributeName="r" from="12" to="22" dur="1.2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.6" to="0" dur="1.2s" repeatCount="indefinite" />
+        </circle>
+      ` : ''}
     </svg>
   `
   return L.divIcon({
     html: svg,
     className: 'driver-marker-icon',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16],
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18],
   })
 }
 
@@ -142,25 +158,51 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
         <MapUpdater city={city} />
         <HeatmapLayer points={heatmapPoints} visible={showHeatmap} />
 
-        {/* Delivery routes */}
-        {routes.map(route => (
-          <Polyline
-            key={`route-${route.id}`}
-            positions={route.coords}
-            pathOptions={{
-              color: STATUS_COLORS[route.status] || '#3b82f6',
-              weight: 3,
-              opacity: 0.6,
-              dashArray: '8 6',
-            }}
-          />
-        ))}
+        {/* Delivery routes (Layered for Glow) */}
+        {routes.map(route => {
+          const color = STATUS_COLORS[route.status] || '#0a84ff';
+          return (
+            <div key={`route-group-${route.id}`}>
+              {/* Outer Glow */}
+              <Polyline
+                positions={route.coords}
+                pathOptions={{
+                  color: color,
+                  weight: 8,
+                  opacity: 0.15,
+                  lineCap: 'round',
+                }}
+              />
+              {/* Mid Glow */}
+              <Polyline
+                positions={route.coords}
+                pathOptions={{
+                  color: color,
+                  weight: 4,
+                  opacity: 0.3,
+                  lineCap: 'round',
+                }}
+              />
+              {/* Main Path */}
+              <Polyline
+                positions={route.coords}
+                pathOptions={{
+                  color: color,
+                  weight: 2,
+                  opacity: 0.8,
+                  lineCap: 'round',
+                  dashArray: route.status === 'delivering' ? '1, 6' : '10, 5',
+                }}
+              />
+            </div>
+          )
+        })}
 
         {/* Debug Routing Exploration Overlay (Dijkstra) */}
         {debugRouteData?.dijkstra?.explored_coords && (
           <Polyline 
             positions={debugRouteData.dijkstra.explored_coords.map(c => [c[0], c[1]])} 
-            pathOptions={{ color: '#22c55e', weight: 5, opacity: 0.15 }} 
+            pathOptions={{ color: '#32d74b', weight: 4, opacity: 0.1 }} 
           />
         )}
 
@@ -168,45 +210,44 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
         {debugRouteData?.astar?.explored_coords && (
           <Polyline 
             positions={debugRouteData.astar.explored_coords.map(c => [c[0], c[1]])} 
-            pathOptions={{ color: '#ef4444', weight: 4, opacity: 0.35 }} 
+            pathOptions={{ color: '#ff453a', weight: 3, opacity: 0.2 }} 
           />
         )}
 
-        {/* Restaurant markers (Red) */}
-        {orders.slice(0, 80).map(order => (
+        {/* Restaurant markers (Pulse) */}
+        {orders.slice(0, 100).map(order => (
           <CircleMarker
             key={`rest-${order.order_id}`}
             center={[order.restaurant_lat, order.restaurant_lng]}
-            radius={5}
+            radius={7}
             pathOptions={{
-              fillColor: '#ef4444',
-              fillOpacity: 0.8,
-              color: '#f87171',
-              weight: 1.5,
+              fillColor: STATUS_COLORS.restaurant,
+              fillOpacity: 0.9,
+              color: 'white',
+              weight: 2,
             }}
           >
             <Popup>
               <div className="driver-popup">
                 <h4>🍕 {order.restaurant_name || "Restaurant"}</h4>
-                {order.restaurant_zone && <p>Zone: {order.restaurant_zone}</p>}
-                <p>Order: {order.order_id}</p>
+                <p>Zone: {order.restaurant_zone}</p>
                 <p>Status: {order.status}</p>
               </div>
             </Popup>
           </CircleMarker>
         ))}
 
-        {/* Customer markers (Blue) */}
-        {orders.slice(0, 80).map(order => (
+        {/* Customer markers */}
+        {orders.slice(0, 100).map(order => (
           <CircleMarker
             key={`cust-${order.order_id}`}
             center={[order.customer_lat, order.customer_lng]}
-            radius={4}
+            radius={5}
             pathOptions={{
-              fillColor: '#3b82f6',
-              fillOpacity: 0.7,
-              color: '#60a5fa',
-              weight: 1,
+              fillColor: STATUS_COLORS.customer,
+              fillOpacity: 0.8,
+              color: 'white',
+              weight: 1.5,
             }}
           >
             <Popup>
@@ -238,25 +279,25 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
         ))}
       </MapContainer>
 
-      {/* Map overlay legend */}
+      {/* Map overlay legend (Premium) */}
       {!showHeatmap && (
         <div className="map-legend">
-          <div className="map-legend-title">Markers</div>
-          <div className="map-legend-items">
-            <div className="map-legend-item">
-              <span style={{ color: '#ef4444', fontSize: 16 }}>●</span> Restaurant
+          <div className="map-legend-title">System Status</div>
+          <div className="legend-grid">
+            <div className="legend-item">
+              <span className="status-dot" style={{ background: STATUS_COLORS.restaurant }}></span> Restaurant
             </div>
-            <div className="map-legend-item">
-              <span style={{ color: '#3b82f6', fontSize: 16 }}>●</span> Customer
+            <div className="legend-item">
+              <span className="status-dot" style={{ background: STATUS_COLORS.customer }}></span> Customer
             </div>
-            <div className="map-legend-item">
-              <span style={{ color: '#22c55e', fontSize: 16 }}>●</span> Idle
+            <div className="legend-item">
+              <span className="status-dot" style={{ background: STATUS_COLORS.idle, boxShadow: `0 0 10px ${STATUS_COLORS.idle}` }}></span> Idle
             </div>
-            <div className="map-legend-item">
-              <span style={{ color: '#eab308', fontSize: 16 }}>●</span> Picking
+            <div className="legend-item">
+              <span className="status-dot" style={{ background: STATUS_COLORS.picking, boxShadow: `0 0 10px ${STATUS_COLORS.picking}` }}></span> Picking
             </div>
-            <div className="map-legend-item">
-              <span style={{ color: '#ef4444', fontSize: 16 }}>●</span> Delivering
+            <div className="legend-item">
+              <span className="status-dot" style={{ background: STATUS_COLORS.delivering, boxShadow: `0 0 10px ${STATUS_COLORS.delivering}` }}></span> Delivering
             </div>
           </div>
         </div>
@@ -266,4 +307,5 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
 }
 
 export default MapView
+
 
