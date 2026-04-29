@@ -16,18 +16,27 @@ function App() {
     num_orders: 1000,
     city: "Pune, India",
     routing_mode: "dynamic",
-    manual_algorithm: "dijkstra"
+    manual_algorithm: "dijkstra",
+    speed: 1
   });
   const [debugRouteData, setDebugRouteData] = useState(null);
   const [debugLoading, setDebugLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const wsRef = useRef(null);
   const reconnectTimer = useRef(null);
 
   const connectWebSocket = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    // Prevent multiple simultaneous connection attempts
+    if (
+      wsRef.current && 
+      (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
 
     try {
+      console.log('[WS] Connecting to:', WS_URL);
       const ws = new WebSocket(WS_URL);
 
       ws.onopen = () => {
@@ -42,21 +51,32 @@ function App() {
           if (data.type !== 'pong') {
             setSimState(data);
             setIsRunning(data.is_running);
+            setIsInitializing(false); // Clear initializing state once data flows
           }
         } catch (e) {
           console.error('[WS] Parse error:', e);
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setIsConnected(false);
-        console.log('[WS] Disconnected');
-        reconnectTimer.current = setTimeout(connectWebSocket, 3000);
+        wsRef.current = null;
+        
+        // Only reconnect if the closure wasn't intentional (clean-up)
+        if (!event.wasClean) {
+          console.log('[WS] Disconnected, attempting reconnect in 3s...');
+          reconnectTimer.current = setTimeout(connectWebSocket, 3000);
+        } else {
+          console.log('[WS] Disconnected (Clean)');
+        }
       };
 
       ws.onerror = (e) => {
-        console.error('[WS] Error:', e);
-        setError('WebSocket connection failed. Is the backend running?');
+        // Only log error if not in middle of closing
+        if (ws.readyState !== WebSocket.CLOSED) {
+          console.error('[WS] Error:', e);
+          setError('WebSocket connection failed. Is the backend running?');
+        }
       };
 
       wsRef.current = ws;
@@ -68,7 +88,15 @@ function App() {
   useEffect(() => {
     connectWebSocket();
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        // Clear handlers before closing to prevent post-unmount state updates
+        wsRef.current.onclose = null;
+        wsRef.current.onerror = null;
+        wsRef.current.onmessage = null;
+        wsRef.current.onopen = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
   }, [connectWebSocket]);
@@ -84,32 +112,49 @@ function App() {
 
   const startSimulation = async () => {
     try {
-      setIsRunning(true);
+      setIsInitializing(true);
+      setError(null);
+      
+      const configWithDelay = {
+        ...simSetupConfig,
+        tick_delay: 2.0 / simSetupConfig.speed
+      };
+
       const res = await fetch(`${API_URL}/api/simulation/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(simSetupConfig)
+        body: JSON.stringify(configWithDelay)
       });
       const data = await res.json();
-      if (data.status !== 'started' && data.status !== 'already_running') {
-        setIsRunning(false);
+      if (data.status === 'started' || data.status === 'already_running') {
+        setIsRunning(true);
+      } else {
+        setIsInitializing(false);
+        setError(data.message || 'Failed to start simulation.');
       }
     } catch (e) {
       setError('Failed to start simulation. Check backend connection.');
-      setIsRunning(false);
+      setIsInitializing(false);
     }
   };
 
   const resetSimulation = async () => {
     try {
+      setIsInitializing(true);
       await fetch(`${API_URL}/api/simulation/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(simSetupConfig)
+        body: JSON.stringify({
+          ...simSetupConfig,
+          tick_delay: 2.0 / simSetupConfig.speed
+        })
       });
       setIsRunning(false);
+      setSimState(null);
+      setIsInitializing(false);
     } catch (e) {
       setError('Failed to reset simulation.');
+      setIsInitializing(false);
     }
   };
 
@@ -122,21 +167,31 @@ function App() {
     }
   };
 
-  const updateConfig = async (routing_mode, manual_algorithm) => {
+  const updateConfig = async (newConfig) => {
     try {
-      setSimSetupConfig(prev => ({ ...prev, routing_mode, manual_algorithm }));
+      // If only certain fields changed, merge them
+      const updatedConfig = { ...simSetupConfig, ...newConfig };
+      setSimSetupConfig(updatedConfig);
+      
+      const backendConfig = {
+        ...updatedConfig,
+        tick_delay: 2.0 / updatedConfig.speed
+      };
+
       await fetch(`${API_URL}/api/simulation/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ routing_mode, manual_algorithm })
+        body: JSON.stringify(backendConfig)
       });
+      
       if (simState) {
-        setSimState({ ...simState, config: { routing_mode, manual_algorithm } });
+        setSimState({ ...simState, config: backendConfig });
       }
     } catch (e) {
       console.error('Failed to update config', e);
     }
   };
+
 
   const fetchDebugRoute = async () => {
     if (!simState || !simState.orders || simState.orders.length === 0) return;

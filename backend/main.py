@@ -61,6 +61,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -77,6 +78,8 @@ async def broadcast_state(state):
             await ws.send_text(message)
         except Exception:
             disconnected.append(ws)
+    for ws in disconnected:
+        ws_clients.discard(ws)
     for ws in disconnected:
         ws_clients.discard(ws)
 
@@ -154,6 +157,7 @@ class SimStartConfig(BaseModel):
     num_orders: int = 1000
     num_drivers: int = 50
     city: str = "Pune, India"
+    tick_delay: float = 2.0
 
 
 @app.post("/api/simulation/start")

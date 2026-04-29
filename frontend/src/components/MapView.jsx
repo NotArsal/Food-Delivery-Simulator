@@ -20,14 +20,14 @@ const CITY_COORDS = {
   "Bangalore, India": [12.9716, 77.5946]
 }
 
-// Premium Status Colors (Aligned with App.css)
+// Premium Status Colors (Accessible Palette)
 const STATUS_COLORS = {
-  idle: '#32d74b',      // Bright Green
-  picking: '#ff9f0a',   // Bright Orange/Yellow
-  delivering: '#ff2d55', // Vivid Pink-Red (Glowing)
-  returning: '#0a84ff',  // Electric Blue
-  restaurant: '#ff3b30', // System Red
-  customer: '#5856d6',   // Indigo
+  idle: '#34c759',      // Apple Green
+  picking: '#ffcc00',   // Apple Yellow
+  delivering: '#ff3b30', // Apple Red
+  returning: '#007aff',  // Apple Blue
+  restaurant: '#ff9500', // Apple Orange
+  customer: '#af52de',   // Apple Purple
 }
 
 // Custom driver icon creator
@@ -148,6 +148,7 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
         zoom={12}
         style={{ height: '100%', width: '100%' }}
         zoomControl={true}
+        preferCanvas={true}
       >
         {/* Dark tile layer */}
         <TileLayer
@@ -215,7 +216,7 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
         )}
 
         {/* Restaurant markers (Pulse) */}
-        {orders.slice(0, 100).map(order => (
+        {orders.map(order => (
           <CircleMarker
             key={`rest-${order.order_id}`}
             center={[order.restaurant_lat, order.restaurant_lng]}
@@ -238,7 +239,7 @@ function MapView({ drivers, orders, isRunning, showHeatmap, debugRouteData, city
         ))}
 
         {/* Customer markers */}
-        {orders.slice(0, 100).map(order => (
+        {orders.map(order => (
           <CircleMarker
             key={`cust-${order.order_id}`}
             center={[order.customer_lat, order.customer_lng]}

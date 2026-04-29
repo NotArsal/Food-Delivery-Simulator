@@ -9,6 +9,7 @@ function Dashboard({
   simState,
   isConnected,
   isRunning,
+  isInitializing,
   config = { routing_mode: 'dynamic', manual_algorithm: 'dijkstra' },
   onUpdateConfig,
   simSetupConfig,
@@ -37,13 +38,13 @@ function Dashboard({
           <div className="segmented-control">
             <button
               className={`segment-btn ${config.routing_mode === 'dynamic' ? 'active' : ''}`}
-              onClick={() => onUpdateConfig('dynamic', config.manual_algorithm)}
+              onClick={() => onUpdateConfig({ routing_mode: 'dynamic' })}
             >
               🤖 Auto
             </button>
             <button
               className={`segment-btn ${config.routing_mode === 'manual' ? 'active' : ''}`}
-              onClick={() => onUpdateConfig('manual', config.manual_algorithm)}
+              onClick={() => onUpdateConfig({ routing_mode: 'manual' })}
             >
               🎯 Manual
             </button>
@@ -88,6 +89,7 @@ function Dashboard({
             <h3 className="panel-title">🕹️ Simulation Control</h3>
             <SimControls
               isRunning={isRunning}
+              isInitializing={isInitializing}
               onStart={onStart}
               onStop={onStop}
               onReset={onReset}

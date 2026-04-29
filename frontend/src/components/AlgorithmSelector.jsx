@@ -25,7 +25,7 @@ function AlgorithmSelector({ config, onUpdateConfig }) {
                 boxShadow: config.manual_algorithm === algo.id ? `0 0 10px ${algo.color}44` : 'none',
                 background: config.manual_algorithm === algo.id ? `${algo.color}11` : 'var(--bg-glass)'
               }}
-              onClick={() => onUpdateConfig('manual', algo.id)}
+              onClick={() => onUpdateConfig({ manual_algorithm: algo.id })}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <span style={{ color: algo.color, fontSize: '16px' }}>{algo.icon}</span>

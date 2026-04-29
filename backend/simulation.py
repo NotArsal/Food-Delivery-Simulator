@@ -40,15 +40,17 @@ class SimulationEngine:
         self._delivery_times = []
         self._ws_clients = set()
         self._orders_per_tick = 10  # Release 10 orders per tick
+        self.tick_delay = 2.0  # Default 2 seconds
         
         # New Routing Configuration
         self.routing_mode = "dynamic" # "dynamic" or "manual"
         self.manual_algorithm = "dijkstra" # "dijkstra", "astar", "bfs", "dfs", "greedy"
 
-    def initialize(self, num_orders=1000, num_drivers=50, city_name="Pune, India"):
+    def initialize(self, num_orders=1000, num_drivers=50, city_name="Pune, India", tick_delay=2.0):
         """Load graph, generate orders and drivers."""
         print(f"[SIM] Initializing simulation for {city_name} with {num_drivers} drivers and {num_orders} orders...")
         self.graph = load_graph(city_name)
+        self.tick_delay = tick_delay
 
         print(f"[SIM] Generating {num_orders} orders...")
         self.orders = generate_orders(self.graph, num_orders=num_orders, city_name=city_name)
@@ -133,35 +135,58 @@ class SimulationEngine:
                         driver["status"] = "delivering"
 
     def _move_drivers(self):
-        """Advance drivers along their routes."""
-        move_steps = 3  # How many coordinate points to advance per tick
+        """Advance drivers along their routes based on vehicle speed."""
+        # 30 km/h base speed, adjusted by global traffic
+        traffic_data = get_traffic_summary(self.graph)
+        total_edges = traffic_data.get("total_edges", 0)
+        traffic_mult = 1.0
+        if total_edges > 0:
+            traffic_mult = (traffic_data.get("low", 0) * 1.0 + 
+                           traffic_data.get("medium", 0) * 1.3 + 
+                           traffic_data.get("high", 0) * 1.8) / total_edges
+        
+        # Effective speed in meters per second
+        speed_kmh = 40 / traffic_mult
+        speed_mps = speed_kmh * 1000 / 3600
+        dist_to_move = speed_mps * self.tick_delay
 
         for driver in self.drivers:
             if driver["status"] in ("delivering", "picking") and driver["route_coords"]:
-                progress = driver["route_progress"]
                 route = driver["route_coords"]
-
+                progress = driver["route_progress"]
+                
                 if progress >= len(route) - 1:
-                    # Route completed
                     self._complete_delivery(driver)
                     continue
 
-                # Advance position
-                new_progress = min(progress + move_steps, len(route) - 1)
+                # Move along the coordinate list based on distance
+                accumulated_dist = 0
+                new_progress = progress
+                
+                while accumulated_dist < dist_to_move and new_progress < len(route) - 1:
+                    p1 = route[new_progress]
+                    p2 = route[new_progress + 1]
+                    # Haversine distance between points
+                    dx = (p2[0] - p1[0])
+                    dy = (p2[1] - p1[1])
+                    segment_dist = math.sqrt(dx ** 2 + dy ** 2) * 111000 # Approx meters
+                    
+                    if accumulated_dist + segment_dist > dist_to_move:
+                        # Partial movement if we wanted to be extremely precise, 
+                        # but advancing to the next node is enough for this simulation scale
+                        break
+                    
+                    accumulated_dist += segment_dist
+                    new_progress += 1
+                
+                if new_progress == progress and progress < len(route) - 1:
+                    new_progress += 1 # Ensure at least 1 node progress
+
                 driver["route_progress"] = new_progress
                 new_pos = route[new_progress]
                 driver["lat"] = new_pos[0]
                 driver["lng"] = new_pos[1]
-
-                # Update stats
-                if new_progress > progress:
-                    for i in range(progress, new_progress):
-                        if i + 1 < len(route):
-                            dx = (route[i + 1][0] - route[i][0])
-                            dy = (route[i + 1][1] - route[i][1])
-                            # Approximate distance in meters
-                            dist_m = math.sqrt(dx ** 2 + dy ** 2) * 111000
-                            driver["stats"]["total_distance_m"] += dist_m
+                driver["stats"]["total_distance_m"] += accumulated_dist
 
     def _complete_delivery(self, driver):
         """Mark a driver's delivery as complete."""
@@ -205,6 +230,7 @@ class SimulationEngine:
             "total_distance_km": driver_stats["total_distance_km"],
             "driver_statuses": driver_stats["status_breakdown"],
             "utilization_pct": driver_stats.get("utilization_pct", 0),
+            "simulation_speed": round(2.0 / self.tick_delay, 1) if self.tick_delay > 0 else 1
         }
 
     def tick(self):
@@ -314,7 +340,7 @@ class SimulationEngine:
                 import traceback
                 traceback.print_exc()
 
-            await asyncio.sleep(2)  # 2 second ticks
+            await asyncio.sleep(self.tick_delay)  # Dynamic speed
 
         elapsed = time.time() - self.start_time
         print(f"[SIM] Simulation completed in {elapsed:.1f}s, {self.tick_count} ticks")
